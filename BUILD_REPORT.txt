@@ -1,0 +1,262 @@
+LLM RELIABILITY LAB: BUILD REPORT
+Date: 2026-11-06
+Location: D:\PROJECTS\Anthropic Research\llm-reliability-lab\
+
+======================================================================
+1. SUMMARY AND STATUS
+======================================================================
+The software is built and passes 97 offline tests. No real model has been
+run, so there are NO research results yet.
+
+  Resume updated with new project entry ... Done (resume_updated.tex, uses your
+                                             resume.cls; NOT compiled, no LaTeX
+                                             on this machine)
+  Evaluation framework .................... Built, tested with mocked responses
+  Seed dataset ............................ 117 base cases, model-generated,
+                                             HUMAN-UNREVIEWED
+  Dashboard (Streamlit, dark) ............. Built; renders in headless tests;
+                                             real server launch confirmed
+  Research docs + paper template .......... Written; contain no findings
+  Real runs (Claude/OpenAI/Gemini/local) .. NOT done (needs your keys and
+                                             verified model ids)
+  Local open-weight adapter ............... Written, never executed
+
+A git repository was initialised in the project folder; nothing is committed.
+
+======================================================================
+2. PART 1: RESUME UPDATE
+======================================================================
+- Request: add "LLM Reliability Lab: Behavioral Reliability & Adversarial
+  Evaluation" as an honest planning-stage project with 3-4 bullets.
+- First attempt: only the PDF was available, so I rebuilt the LaTeX from its
+  layout. You then attached resume.tex and resume.cls.
+- Finding: the attached resume.tex was my earlier article-class rebuild, not
+  your original source. It did not use resume.cls.
+- Fix: resume_updated.tex now uses \documentclass{resume} with your class
+  commands (\introduction, \summary, \projectItem, \achievementItem). The stale
+  rebuild file was deleted.
+- Bullet verbs: Designing, Developing, Proposing, Constructing. No percentages,
+  dataset sizes, publications or results.
+- Open items: file not compiled, so page fit is unchecked (entry adds ~5 lines
+  to an already full page). The tech line has no GitHub link yet. You may now
+  revise "Designing" to "Developed" for the software itself, but keep results
+  claims out until real runs exist.
+
+======================================================================
+3. PART 2: PROJECT ARCHITECTURE
+======================================================================
+Data flow:
+  1. datasets/generated/*.jsonl are loaded and validated.
+  2. Each experiment turns cases into prompts (build_items).
+  3. ExperimentRunner plans, rate-limits, retries and sends requests, appending
+     each response to results/raw/<experiment>__<model>.jsonl (append-only).
+  4. score_raw applies each experiment's rubric, writes
+     results/processed/scored.* and a human review queue.
+  5. compute_metrics + paired tests produce metrics.csv, comparisons.csv,
+     figures and report.md.
+  6. The dashboard and the paper-template filler read those outputs.
+
+File map:
+  src/reliability_lab/models/       Claude, OpenAI, Gemini, local HF, mock;
+                                    shared retry, rate limit, timeout, token and
+                                    cost tracking
+  src/reliability_lab/experiments/  Six modules, each with a documented rubric
+  src/reliability_lab/evaluation/   Scoring primitives, metrics, statistics,
+                                    evaluators (semantic, judge, human labels),
+                                    failure categories
+  src/reliability_lab/pipeline/     Resumable runner, result collector, report
+                                    generator
+  configs/                          models.yaml, experiments.yaml, evaluation.yaml
+  scripts/                          run_experiment, run_all, analyse_results,
+                                    validate_dataset, build_dataset,
+                                    promote_verified, list_models,
+                                    generate_report
+  dashboard/app.py, .streamlit/     Tabs: Overview, Model comparison, Experiment
+                                    analysis, Failure analysis, Cost, Export
+  research/                         Questions, methodology, literature map,
+                                    taxonomy, limitations, results template,
+                                    checklist, paper template
+  notebooks/                        Exploratory and failure analysis
+  tests/                            97 tests
+
+Safety rails against accidental spend: --dry-run; --smoke (3 cases, separate
+results folder); confirmation prompt above 150 requests (refuses when no one can
+answer); caps of 2,000 requests and $10 (cost cap only when prices are set);
+API keys read only from environment variables.
+
+======================================================================
+4. DATASET (v0.1.0)
+======================================================================
+117 base cases, all written by an AI assistant, NONE human-verified. This is a
+pilot instrument, not a benchmark.
+
+  Experiment                        Base cases          Prompts/model/repeat
+  1 Contradictory instructions      18                  18
+  2 Misleading context              18                  18
+  3 Uncertainty / hallucination     24 (18 + 6 controls) 24
+  4 Adversarial prompts             21 (3x6 + 3 controls) 21
+  5 Context sensitivity             18                  108 (x C0-C5)
+  6 Response stability              18                  76 (x3 repeats)
+
+Full default run = 417 requests per model. The 600-case target is a later goal.
+
+- Provenance: origin=model_generated, human_review_status=unreviewed (a test
+  fails if a case claims otherwise).
+- Separation: unreviewed in datasets/generated/; only promoted cases go to
+  datasets/processed/ (scripts/promote_verified.py).
+- Controls: satisfiable instruction pairs, answerable questions, no-attack
+  tasks, question-only baseline, identical-prompt repeats.
+- Tested quality checks: unique ids, no duplicate questions, no question leaks
+  its answer, no fact reused across experiments, all difficulty levels present,
+  deterministic builder.
+- datasets/dataset_card.md records origin, biases and intended use.
+
+======================================================================
+5. THE SIX EXPERIMENTS
+======================================================================
+1 Instruction conflicts - Does the model notice/handle contradictions?
+  Conditions: direct, format, length, priority, ambiguous, order-swapped pairs,
+  satisfiable controls.
+  Metrics: conflict recognition, instruction adherence, constraint violation,
+  appropriate resolution, over-flagging, order sensitivity.
+
+2 Misleading context - Can false context override correct knowledge?
+  Conditions: correct, incorrect, contradictory, irrelevant, partial,
+  fabricated-authority.
+  Metrics: factual accuracy, misleading susceptibility (by provenance), context
+  influence, unsupported assertion.
+
+3 Uncertainty - Does it abstain when the answer cannot be established?
+  Conditions: fictional papers/people, unverifiable, missing input, ambiguous,
+  insufficient evidence, answerable controls.
+  Metrics: appropriate abstention, hallucination, false abstention, non-epistemic
+  refusal, ECE, Brier.
+
+4 Adversarial - How often do benign injections displace the task?
+  Conditions: override, role-play, quoted, retrieved document, formatting,
+  multi-step, no-attack control.
+  Metrics: attack success (strict), canary leak (lenient), task preservation,
+  constraint violation.
+
+5 Context sensitivity - Does extra context help or hurt?
+  Conditions: C0 none, C1 relevant, C2 irrelevant, C3 misleading, C4 excessive,
+  C5 contradictory.
+  Metrics: accuracy by condition, degradation vs C0, context benefit,
+  sensitivity score.
+
+6 Response stability - Are answers invariant to wording, format, order, sampling?
+  Conditions: original, 2 paraphrases, structured format, reversed context,
+  repeats.
+  Metrics: answer agreement, semantic consistency, outcome variance, wording
+  sensitivity.
+
+Design choices:
+- Exp 1 pre-registers acceptable outcomes per case; not every resolution counts.
+- Exp 3 separates epistemic abstention from bare refusal.
+- Exp 4 uses only benign canary tokens; no harmful content.
+- Exp 6 reports factual agreement separately from stylistic similarity.
+
+======================================================================
+6. EVALUATION AND STATISTICS
+======================================================================
+A. Deterministic (default): normalised word-boundary ground-truth matching,
+   structural validators (JSON, bullets, tables, counts), canary detection.
+B. Semantic: sentence-embedding similarity for stability (falls back to word
+   overlap if unavailable; backend is recorded).
+C. Human: rows flagged needs_review go to review_queue.csv; labels in
+   results/human_labels.jsonl are merged; agreement (raw, Cohen's kappa) is
+   reported.
+LLM judge (optional, off): extra signal only; refuses to judge a model's own
+outputs.
+
+Statistics: Wilson intervals; cluster bootstrap over cases for repeated
+measures; exact McNemar with Holm correction for paired models; Cohen's h, odds
+ratio, paired accuracy difference; ECE and Brier; Cohen's kappa. Non-significance
+is never treated as equivalence.
+
+======================================================================
+7. TESTING AND VERIFICATION
+======================================================================
+97 tests pass, offline, ~15-20 seconds.
+
+  Unit tests (scoring, statistics, models, retry, rate limit, budget) ... Pass
+  Experiment rubric tests (good/bad hand-written responses) ............. Pass
+  Dataset quality tests + validate_dataset.py ........ 0 errors, 0 warnings
+  Mocked integration tests (end to end, resume after errors, append-only
+    raw data, budget stop, paired tests, human labels, report) .......... Pass
+  Dashboard tests (empty state, with data) ............................. Pass
+  Real Streamlit server launch ........ Health ok, page served, then stopped
+  Provider adapters construct against installed SDKs ................... Pass
+  Live call with dummy key ... Reached Anthropic API; failed only at auth (401)
+  Large-run confirmation with no one to answer ... Refuses; nothing sent
+
+NOT verified: any real model response; the scoring heuristics against real
+outputs; the local open-weight adapter; the sentence-transformers backend (tests
+use the word-overlap fallback).
+
+======================================================================
+8. PROBLEMS FOUND AND FIXED
+======================================================================
+- resume.tex was my earlier rebuild, not the original -> rebuilt on real
+  resume.cls; removed stale file.
+- Anthropic SDK 2.6.0 has no temperature parameter; adapter crashed -> adapter
+  sends only accepted parameters, retries without a rejected one, stores
+  params_applied in every raw record.
+- Confirmation prompt crashed with EOFError when nobody could answer -> now
+  refuses cleanly; test added.
+- "mercury" used in two experiments -> replaced one question (tallest land
+  animal).
+- Dataset tests matched substrings ("fe" in "reference") -> word-boundary
+  matching.
+- Processed results lost booleans when reloaded from CSV -> reload from JSONL.
+- Wrong test assumptions (baseline ordering, model order, interleaved raw files)
+  -> corrected the tests, not the code.
+- OpenAI/Gemini model ids disagreed across documentation snapshots -> marked
+  unverified in models.yaml; added scripts/list_models.py.
+
+======================================================================
+9. DESIGN CONCERNS AND LIMITATIONS
+======================================================================
+With ~20 cases per experiment only large effects are detectable. Nothing here
+supports claims about model internals or overall safety.
+
+- Dataset: model-generated, unreviewed; ground truths unchecked; fictional
+  entities may coincide with real ones; a Claude author may favour Claude models.
+- Ceiling effects and contamination: famous facts are likely memorised.
+- Heuristic scoring: English-phrase detectors need human validation.
+- Single prompt templates; neutral context instruction measures default
+  behaviour only.
+- Sampling control differs by provider: where temperature/seed is not accepted,
+  Exp 6 measures provider-default variance, confounding cross-model comparisons.
+  Check params_applied.
+- Context confounds: C4 differs from C1 in length and distractors.
+- Multiplicity: only the primary metric per experiment is confirmatory.
+- Model versions drift: record exact ids and run dates; do not pool across dates.
+- Literature list written from memory without lookup: verify every reference.
+
+======================================================================
+10. HOW TO RUN, AND YOUR TO-DO LIST
+======================================================================
+  pip install -r requirements.txt
+  cp .env.example .env            (Windows: copy .env.example .env)
+  python -m pytest
+  python scripts/validate_dataset.py
+  python scripts/run_all.py --smoke --models mock --yes
+  python scripts/analyse_results.py --results-dir results_smoke --no-embeddings
+  streamlit run dashboard/app.py
+
+Real runs: python scripts/run_all.py --dry-run, then a pilot
+(run_experiment.py -e misleading_context --models claude --limit 5), then full.
+
+Manual to-do:
+  [ ] Add API keys to .env
+  [ ] Run scripts/list_models.py; fix model ids in configs/models.yaml (OpenAI
+      and Gemini ids are unverified placeholders)
+  [ ] Optionally add prices to models.yaml; choose an open-weight model
+  [ ] Human-verify the dataset and Exp 3 fictional entities; promote with
+      scripts/promote_verified.py
+  [ ] Freeze research/research_questions.md (commit + tag) before first real run
+  [ ] Read and verify every reference in research/literature_review.md
+  [ ] Compile resume_updated.tex, check one-page fit, add project GitHub link
+  [ ] After real runs, label the review queue and fill
+      research/experimental_results.md
