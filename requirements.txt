@@ -1,0 +1,30 @@
+# Core
+pandas>=2.0
+numpy>=1.26
+pydantic>=2.5
+PyYAML>=6.0
+python-dotenv>=1.0
+
+# Evaluation
+scipy>=1.11
+scikit-learn>=1.3
+sentence-transformers>=3.0   # optional: semantic consistency (falls back to token overlap if absent)
+
+# Model providers (each is imported lazily; install only what you use)
+anthropic>=0.40
+openai>=1.50
+google-genai>=1.0
+transformers>=4.44           # only needed for the local open-weight adapter
+# torch>=2.2                 # install the build appropriate for your hardware
+
+# Visualisation and dashboard
+matplotlib>=3.8
+seaborn>=0.13
+plotly>=5.20
+streamlit>=1.35
+
+# Testing
+pytest>=8.0
+
+# Optional experiment tracking
+# mlflow>=2.10

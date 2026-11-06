@@ -1,0 +1,61 @@
+# Model registry. Every model can be enabled/disabled independently.
+#
+# IMPORTANT: model identifiers change frequently. The values below were taken from
+# provider documentation / the implementer's environment on 2026-11-06 and are marked
+# `verified: false` where they could not be confirmed against the provider's live
+# model-list endpoint. Run `python scripts/list_models.py` (needs API keys) and edit
+# `model_id` before running real experiments. Record the exact id you used: it is stored
+# with every response.
+#
+# Pricing: leave null unless you copy the numbers from the provider's pricing page.
+# Cost estimates are only produced when both prices are set (USD per 1M tokens).
+
+defaults:
+  temperature: 0.0
+  max_tokens: 512
+  timeout_s: 60
+  max_retries: 4
+  requests_per_minute: 30
+
+models:
+  claude:
+    enabled: true
+    provider: anthropic
+    model_id: claude-sonnet-5-5        # from Anthropic's published model list at implementation time
+    verified: false
+    api_key_env: ANTHROPIC_API_KEY
+    price_per_mtok_input: null
+    price_per_mtok_output: null
+
+  openai:
+    enabled: true
+    provider: openai
+    model_id: gpt-6-luna               # UNVERIFIED: OpenAI docs snapshots disagreed (gpt-6.x vs gpt-5.6). Check /v1/models.
+    verified: false
+    api_key_env: OPENAI_API_KEY
+    price_per_mtok_input: null
+    price_per_mtok_output: null
+
+  gemini:
+    enabled: true
+    provider: gemini
+    model_id: gemini-3.1-flash-lite    # UNVERIFIED: check ai.google.dev/gemini-api/docs/models
+    verified: false
+    api_key_env: GEMINI_API_KEY
+    price_per_mtok_input: null
+    price_per_mtok_output: null
+
+  open_weight:
+    enabled: false                     # enable after choosing a model that fits your hardware
+    provider: local
+    model_id: REPLACE_WITH_HF_MODEL_ID # e.g. any instruction-tuned chat model on the Hugging Face Hub
+    verified: false
+    device: auto                       # auto | cpu | cuda
+    max_tokens: 256
+    requests_per_minute: 600
+
+  mock:                                # offline pipeline testing only; NEVER report as a model result
+    enabled: false
+    provider: mock
+    model_id: mock-heuristic-v1
+    requests_per_minute: 100000

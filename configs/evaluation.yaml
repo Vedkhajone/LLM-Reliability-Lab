@@ -1,0 +1,19 @@
+statistics:
+  confidence_level: 0.95
+  bootstrap_resamples: 2000
+  bootstrap_seed: 20260
+  multiple_comparison_correction: holm   # applied across paired tests within a report
+
+semantic:
+  enabled: true                          # uses sentence-transformers if installed, else token-overlap fallback
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+
+# Optional LLM-as-judge. It is an ADDITIONAL signal, never the sole scorer, and the judge
+# model must differ from the model being evaluated (enforced in code).
+judge:
+  enabled: false
+  model_key: claude                      # key in models.yaml
+  experiments: [instruction_conflicts, uncertainty]
+
+human_review:
+  labels_file: results/human_labels.jsonl   # one JSON object per line: {"item_id", "model_key", "repeat", "label"}

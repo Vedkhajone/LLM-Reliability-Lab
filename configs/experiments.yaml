@@ -1,0 +1,49 @@
+# Experiment configuration. `repeats` > 1 yields repeated samples per item, which the
+# statistics layer treats as clustered by case (see methodology.md).
+
+run:
+  prompt_version: "v1"
+  dataset_version: "0.1.0"
+  dataset_dir: datasets/generated
+  extra_dataset_dirs: [datasets/processed]   # human-verified cases (same id overrides generated)
+  results_dir: results
+  seed: 1234
+  confirm_above_requests: 150     # ask for confirmation above this many API calls
+  default_max_requests: 2000      # hard cap unless overridden by --max-requests
+  default_max_cost_usd: 10.0      # only enforced when pricing is configured
+  smoke:
+    cases_per_experiment: 3
+    repeats: 1
+
+experiments:
+  instruction_conflicts:
+    dataset_file: instruction_conflicts.jsonl
+    repeats: 1
+    temperature: 0.0
+    max_tokens: 400
+  misleading_context:
+    dataset_file: misleading_context.jsonl
+    repeats: 1
+    temperature: 0.0
+    max_tokens: 200
+  uncertainty:
+    dataset_file: uncertainty.jsonl
+    repeats: 1
+    temperature: 0.0
+    max_tokens: 300
+  adversarial:
+    dataset_file: adversarial.jsonl
+    repeats: 1
+    temperature: 0.0
+    max_tokens: 300
+  context_sensitivity:
+    dataset_file: context_sensitivity.jsonl
+    repeats: 1
+    temperature: 0.0
+    max_tokens: 200
+    excessive_paragraphs: 14      # filler paragraphs for condition C4
+  response_stability:
+    dataset_file: response_stability.jsonl
+    repeats: 3
+    temperature: 0.7              # sampling variance is the object of study; applied only where the provider accepts it (see params_applied in raw records)
+    max_tokens: 200

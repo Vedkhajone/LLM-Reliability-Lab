@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+mlruns/
+# Raw results can be large / costly to reproduce: keep them out of git by default.
+# Remove these lines if you want to version your raw data.
+results/raw/*.jsonl
+results/_smoke/
+results_smoke/
+.streamlit/secrets.toml
